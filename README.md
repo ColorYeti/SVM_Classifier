@@ -1,2 +1,6 @@
-# SVM_Classifier
-Support Vector Machine Classifier implementation on Python 3.6
+# Machine Learning
+Machine learning stuff on Python 2.7 including:
+-KNN Classifier
+-SVM Classifier
+-Softmax Classifier
+-Neural Networks
