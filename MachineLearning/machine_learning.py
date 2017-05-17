@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cs231n.data_utils import load_CIFAR10
 
-def process_data(method = 'SVM'):
+def process_data(method='SVM'):
     """Process the datasets"""
-    cifar10_dir = (r"D:\School projects\Programming\Python"+
-                   r"\Machine-Learning-Stuff\SVM1\SVM1\cs231n\datasets\cifar-10-batches-py")
+
+    cifar10_dir = r"D:\Downloads\cifar-10-python\cifar-10-batches-py"
     train_data, train_label, test_data, test_label = load_CIFAR10(cifar10_dir)
 
     print 'Training Data Shape: ', train_data.shape
@@ -32,8 +32,11 @@ def process_data(method = 'SVM'):
                 plt.title(cls)
     plt.show()
     """
-    
-    if (method == 'SVM'):
+    #
+    if method == 'KNN':
+        KNN(train_data, train_label, test_data, test_label)
+    #
+    else:
         number_training = 49000
         number_validation = 1000
         number_test = 1000
@@ -76,67 +79,24 @@ def process_data(method = 'SVM'):
         validation_data -= mean_image
         test_data -= mean_image
 
-        train_data = np.hstack([train_data, np.ones((train_data.shape[0], 1))]).T
-        validation_data = np.hstack([validation_data, np.ones((validation_data.shape[0], 1))]).T
-        test_data = np.hstack([test_data, np.ones((test_data.shape[0], 1))]).T
+        train_data = train_data.T
+        validation_data = validation_data.T
+        test_data = test_data.T
 
         print train_data.shape, validation_data.shape, test_data.shape, '\n'
-        SVM(train_data, train_label, validation_data, validation_label, train_data, train_label)
-    elif (method == 'KNN'):
-        KNN(train_data, train_label, test_data, test_label)
-    elif (method == 'Softmax'):
-        number_training = 49000
-        number_validation = 1000
-        number_test = 1000
-        number_development = 500
 
-        mask = list(range(number_training, number_training+number_validation))
-        validation_data = train_data[mask]
-        validation_label = train_label[mask]
-
-        mask = list(range(number_training))
-        train_data = train_data[mask]
-        train_label = train_label[mask]
-
-        mask = list(range(number_test))
-        test_data = test_data[mask]
-        test_label = test_label[mask]
-
-        mask = np.random.choice(number_training, number_development, replace=False)
-        development_data = train_data[mask]
-        development_label = train_label[mask]
-
-        train_data = np.reshape(train_data, (train_data.shape[0], -1))
-        validation_data = np.reshape(validation_data, (validation_data.shape[0], -1))
-        test_data = np.reshape(test_data, (test_data.shape[0], -1))
-        development_data = np.reshape(development_data, (development_data.shape[0], -1))        
-
-        mean_image = np.mean(train_data, axis=0)
-        train_data -= mean_image
-        validation_data -= mean_image
-        test_data -= mean_image
-        development_data -= mean_image
-
-        train_data = np.hstack([train_data, np.ones((train_data.shape[0], 1))])
-        validation_data = np.hstack([validation_data, np.ones((validation_data.shape[0], 1))])
-        test_data = np.hstack([test_data, np.ones((test_data.shape[0], 1))])
-        development_data = np.hstack([development_data, np.ones((development_data.shape[0], 1))])
-
-        print 'Train data shape: ', train_data.shape
-        print 'Train labels shape: ', train_label.shape
-        print 'Validation data shape: ', validation_data.shape
-        print 'Validation label shape: ', validation_label.shape
-        print 'Test data shape: ', test_data.shape
-        print 'Test label shape: ', test_label.shape, '\n'
-
-        Softmax(train_data, train_label, validation_data, validation_label, test_data, test_label, development_data, development_label)
-
+        if (method=='SVM'):
+            SVM(train_data, train_label, validation_data, validation_label, train_data, train_label)
+        #
+        else:
+            Softmax(train_data, train_label, validation_data, validation_label, train_data, train_label)
+#
 from cs231n.classifiers.linear_svm import svm_loss_naive
 from cs231n.gradient_check import grad_check_sparse
 from cs231n.classifiers.linear_svm import svm_loss_vectorized
 
 def SVM(train_data, train_label, validation_data, validation_label, test_data, test_label):
-    W = np.random.randn(10,3073)*0.0001
+    W = np.random.randn(10, 3072)*0.0001
     loss, grad = svm_loss_naive(W, train_data, train_label, 0.000005)
     print 'loss: %f \n'%loss
     '''
@@ -163,7 +123,7 @@ def SVM(train_data, train_label, validation_data, validation_label, test_data, t
 
     svm = LinearSVM()
     t1 = time.time()
-    loss_hist = svm.train(train_data, train_label, learning_rate=1e-7, reg=5e4, num_iters=1500, verbose=True)
+    loss_hist = svm.train(train_data, train_label, learning_rate=1e-7, reg=5e4, num_iters=1000, verbose=True)
     t2 = time.time()
     print 'That took %fs'%(t2-t1)
 
@@ -229,8 +189,10 @@ def SVM(train_data, train_label, validation_data, validation_label, test_data, t
     y_test_pred = best_svm.predict(test_data)
     test_accuracy = np.mean(y_test_pred == test_label)
     print 'Linear SVM on raw pixels final test set accuracy: %f'%test_accuracy
-
-    w = best_svm.W[:, :-1]
+    
+    print best_svm.W.shape
+    w = best_svm.W[:, :]
+    print w.shape
     w = w.reshape(10, 32, 32, 3)
     w_min, w_max = np.min(w), np.max(w)
     classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
@@ -241,12 +203,13 @@ def SVM(train_data, train_label, validation_data, validation_label, test_data, t
         plt.axis('off')
         plt.title(classes[i])
     plt.show()
+#
 from cs231n.classifiers import KNearestNeighbor
 from cs231n.gradient_check import grad_check_sparse
 
 def KNN(train_data, train_label, test_data, test_label):
     pass
-
+#
 from cs231n.classifiers.softmax import softmax_loss_naive
 from cs231n.classifiers.softmax import softmax_loss_vectorized
 from cs231n.classifiers.softmax import softmax_loss_vectorized
@@ -277,5 +240,30 @@ def Softmax(train_data, train_label, validation_data, validation_label, test_dat
     grad_difference = np.linalg.norm(grad_naive - grad_vectorized, ord='fro')
     print('Loss difference: %f' % np.abs(loss_naive - loss_vectorized))
     print('Gradient difference: %f' % grad_difference)
+#
+from cs231n.classifiers.neural_net import init_toy_data
+from cs231n.classifiers.neural_net import init_toy_model
+from cs231n.classifiers.neural_net import TwoLayerNet
+def NN():
+    net = init_toy_model()
+    X, y = init_toy_data()
 
+    scores = net.loss(X)
+    print('Your scores:')
+    print(scores)
+    print()
+    print('correct scores:')
+    correct_scores = np.asarray([
+                    [-0.81233741, -1.27654624, -0.70335995],
+                    [-0.17129677, -1.18803311, -0.47310444],
+                    [-0.51590475, -1.01354314, -0.8504215 ],
+                    [-0.15419291, -0.48629638, -0.52901952],
+                    [-0.00618733, -0.12435261, -0.15226949]])
+print(correct_scores)
+print()
+
+# The difference should be very small. We get < 1e-7
+print('Difference between your scores and correct scores:')
+print(np.sum(np.abs(scores - correct_scores)))
+#
 process_data()
