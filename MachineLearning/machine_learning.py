@@ -13,14 +13,19 @@ from cs231n.classifiers.softmax import softmax_loss_vectorized
 from cs231n.classifiers.neural_net import init_toy_data
 from cs231n.classifiers.neural_net import init_toy_model
 from cs231n.classifiers.neural_net import TwoLayerNet
+from cs231n.classifiers.neural_net import rel_error
+from cs231n.classifiers.neural_net import show_net_weights
 from cs231n.gradient_check import eval_numerical_gradient
 
+np.set_printoptions(threshold=np.inf)
 
 def process_data(method='NeuralNet'):
     """Process the datasets"""
 
     cifar10_dir = r"D:\Downloads\cifar-10-python\cifar-10-batches-py"
     train_data, train_label, test_data, test_label = load_CIFAR10(cifar10_dir)
+
+    print train_label
 
     print 'Training Data Shape: ', train_data.shape
     print 'Training Labels Shape: ', train_label.shape
@@ -276,15 +281,54 @@ def NeuralNet(train_data, train_label, validation_data, validation_label, test_d
     print train_label.shape
     # Train the network
     stats = net.train(train_data, train_label, validation_data, validation_label,
-                      num_iters=1000, batch_size=200,
+                      num_iters=2500, batch_size=200,
                       learning_rate=1e-4, learning_rate_decay=0.95,
-                      reg=0.25, verbose=True)
+                      reg=0.25, verbose=True, method='adam')
 
     # Predict on the validation set
-    predicting =net.predict(validation_data)
-    print predicting,'  ',validation_label
-    val_acc = (predicting == validation_label).mean()
+    val_acc = (net.predict(validation_data) == validation_label).mean()
     print('Validation accuracy: ', val_acc)
+
+    # Plot the loss function and train / validation accuracies
+    plt.subplot(2, 1, 1)
+    plt.plot(stats['loss_history'])
+    plt.title('Loss history')
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+
+    plt.subplot(2, 1, 2)
+    plt.plot(stats['train_acc_history'], label='train')
+    plt.plot(stats['val_acc_history'], label='val')
+    plt.title('Classification accuracy history')
+    plt.xlabel('Epoch')
+    plt.ylabel('Clasification accuracy')
+    plt.show()
+
+    show_net_weights(net)
+
+    for learning in learning_rates:
+        for regularization in regularization_strengths:
+            svm = LinearSVM()
+            svm.train(train_data, train_label, learning_rate=learning,
+                      reg=regularization, num_iters=2000)
+            train_label_predict = svm.predict(train_data)
+            train_accuracy = np.mean(train_label_predict == train_label)
+            print 'Training accuracy: %f' % train_accuracy
+            validation_label_predict = svm.predict(validation_data)
+            val_accuracy = np.mean(validation_label_predict == validation_label)
+            print 'Validation accuracy: %f' % val_accuracy
+
+            if val_accuracy > best_val:
+                best_val = val_accuracy
+                best_svm = svm
+
+            results[(learning, regularization)] = (
+                train_accuracy, val_accuracy)
+
+    for lr, reg in sorted(results):
+        train_accuracy, val_accuracy = results[(lr, reg)]
+        print 'lr %e reg %e train accuracy: %f val accuracy %f' % (lr, reg, train_accuracy, val_accuracy)
+    print 'Best validation accuracy achieved during cross validation: %f ' % best_val
 #
 
 
@@ -345,9 +389,6 @@ def NN():
 #
 
 
-def rel_error(x, y):
-    """ returns relative error """
-    return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
 #
 
 process_data()

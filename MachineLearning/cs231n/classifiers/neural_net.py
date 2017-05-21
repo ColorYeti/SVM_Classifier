@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
+from cs231n.vis_utils import visualize_grid
 
-relu = lambda x: x * (x > 0)
+
+def relu(x): return x * (x > 0)
+
 
 class TwoLayerNet(object):
     """
@@ -71,15 +74,15 @@ class TwoLayerNet(object):
 
         # Compute the forward pass
         scores = None
-        
+
         #######################################################################
         # TODO: Perform the forward pass, computing the class scores for the input. #
         # Store the result in the scores variable, which should be an array of      #
         # shape (N, C).                                                             #
         #######################################################################
-        layer1 = X.dot(W1)+b1
-        layer2 = relu(layer1)  #relu
-        layer3 = layer2.dot(W2)+b2
+        layer1 = X.dot(W1) + b1
+        layer2 = relu(layer1)  # relu
+        layer3 = layer2.dot(W2) + b2
         scores = layer3
         #######################################################################
         #                              END OF YOUR CODE                             #
@@ -97,13 +100,13 @@ class TwoLayerNet(object):
         # in the variable loss, which should be a scalar. Use the Softmax           #
         # classifier loss.                                                          #
         #######################################################################
-        exp_correct_score = np.exp(scores[np.arange(N),y])
+        exp_correct_score = np.exp(scores[np.arange(N), y])
         exp_scores = np.exp(scores)
 
-        loss = - np.log(exp_correct_score/np.sum(exp_scores,axis=1))
-        loss= np.sum(loss)
+        loss = - np.log(exp_correct_score / np.sum(exp_scores, axis=1))
+        loss = np.sum(loss)
         loss /= N
-        loss += 0.5*reg*(np.sum(W1*W1)+np.sum(W2*W2))
+        loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
         #######################################################################
         #                              END OF YOUR CODE                             #
         #######################################################################
@@ -115,16 +118,16 @@ class TwoLayerNet(object):
         # and biases. Store the results in the grads dictionary. For example,       #
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #######################################################################
-        dscores = (exp_scores.T/np.sum(exp_scores, axis=1)).T
-        dscores[np.arange(N),y] -= 1
+        dscores = (exp_scores.T / np.sum(exp_scores, axis=1)).T
+        dscores[np.arange(N), y] -= 1
         dscores /= N
         dscores *= 1.0
-        drelu = np.dot(dscores,W2.T)*(layer1>=0)
-        
-        grads['b2'] = np.sum(dscores,axis=0)
-        grads['W2'] = np.dot(layer2.T,dscores) + reg * W2
-        grads['b1'] = np.sum(drelu,axis=0) 
-        grads['W1'] = np.dot(X.T,drelu) + reg * W1
+        drelu = np.dot(dscores, W2.T) * (layer1 >= 0)
+
+        grads['b2'] = np.sum(dscores, axis=0)
+        grads['W2'] = np.dot(layer2.T, dscores) + reg * W2
+        grads['b1'] = np.sum(drelu, axis=0)
+        grads['W1'] = np.dot(X.T, drelu) + reg * W1
         #######################################################################
         #                              END OF YOUR CODE                             #
         #######################################################################
@@ -134,7 +137,7 @@ class TwoLayerNet(object):
     def train(self, X, y, X_val, y_val,
               learning_rate=1e-3, learning_rate_decay=0.95,
               reg=5e-6, num_iters=100,
-              batch_size=200, verbose=True):
+              batch_size=200, verbose=True, method='vanilla'):
         """
         Train this neural network using stochastic gradient descent.
 
@@ -160,7 +163,17 @@ class TwoLayerNet(object):
         train_acc_history = []
         val_acc_history = []
 
+        v0 = 0
+        v1 = 0
+        v2 = 0
+        v3 = 0
+        v0p = v0
+        v1p = v1
+        v2p = v2
+        v3p = v3
+
         for it in xrange(num_iters):
+            it += 1
             X_batch = None
             y_batch = None
 
@@ -168,9 +181,9 @@ class TwoLayerNet(object):
             # TODO: Create a random minibatch of training data and labels, storing  #
             # them in X_batch and y_batch respectively.                             #
             ###################################################################
-            indices=np.random.choice(num_train,batch_size,replace=True)
-            X_batch=X[indices]
-            y_batch=y[indices]
+            indices = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[indices]
+            y_batch = y[indices]
             ###################################################################
             #                             END OF YOUR CODE                          #
             ###################################################################
@@ -185,10 +198,105 @@ class TwoLayerNet(object):
             # using stochastic gradient descent. You'll need to use the gradients   #
             # stored in the grads dictionary defined above.                         #
             ###################################################################
-            self.params['W1'] -= grads['W1']*learning_rate
-            self.params['W2'] -= grads['W2']*learning_rate
-            self.params['b1'] -= grads['b1']*learning_rate
-            self.params['b2'] -= grads['b2']*learning_rate
+            if method == 'vanilla':
+                self.params['W1'] -= learning_rate * grads['W1']
+                self.params['W2'] -= learning_rate * grads['W2']
+                self.params['b1'] -= learning_rate * grads['b1']
+                self.params['b2'] -= learning_rate * grads['b2']
+
+            elif method == 'momentum':
+                mu = 0.5
+
+                v0 = mu * v0 - learning_rate * grads['W1']
+                v1 = mu * v1 - learning_rate * grads['W2']
+                v2 = mu * v2 - learning_rate * grads['b1']
+                v3 = mu * v3 - learning_rate * grads['b2']
+
+                self.params['W1'] += v0
+                self.params['W2'] += v1
+                self.params['b1'] += v2
+                self.params['b2'] += v3
+
+            elif method == 'nesterov':
+                mu = 0.5
+
+                v0 = mu * v0 - learning_rate * grads['W1']
+                v1 = mu * v1 - learning_rate * grads['W2']
+                v2 = mu * v2 - learning_rate * grads['b1']
+                v3 = mu * v3 - learning_rate * grads['b2']
+
+                self.params['W1'] += -mu * v0p + (1 + mu) * v0
+                self.params['W2'] += -mu * v1p + (1 + mu) * v1
+                self.params['b1'] += -mu * v2p + (1 + mu) * v2
+                self.params['b2'] += -mu * v3p + (1 + mu) * v3
+
+                v0p = v0
+                v1p = v1
+                v2p = v2
+                v3p = v3
+
+            elif method == 'adagrad':
+                v0 += grads['W1']**2
+                v1 += grads['W2']**2
+                v2 += grads['b1']**2
+                v3 += grads['b2']**2
+
+                self.params['W1'] += -learning_rate * \
+                    grads['W1'] / (np.sqrt(v0) + 1e-7)
+                self.params['W2'] += -learning_rate * \
+                    grads['W2'] / (np.sqrt(v1) + 1e-7)
+                self.params['b1'] += -learning_rate * \
+                    grads['b1'] / (np.sqrt(v2) + 1e-7)
+                self.params['b2'] += -learning_rate * \
+                    grads['b2'] / (np.sqrt(v3) + 1e-7)
+            elif method == 'rmsprop':
+                mu = 0.99
+
+                v0 = mu * v0 + (1 - mu) * grads['W1']**2
+                v1 = mu * v1 + (1 - mu) * grads['W2']**2
+                v2 = mu * v2 + (1 - mu) * grads['b1']**2
+                v3 = mu * v3 + (1 - mu) * grads['b2']**2
+
+                self.params['W1'] += -learning_rate * \
+                    grads['W1'] / (np.sqrt(v0) + 1e-7)
+                self.params['W2'] += -learning_rate * \
+                    grads['W2'] / (np.sqrt(v1) + 1e-7)
+                self.params['b1'] += -learning_rate * \
+                    grads['b1'] / (np.sqrt(v2) + 1e-7)
+                self.params['b2'] += -learning_rate * \
+                    grads['b2'] / (np.sqrt(v3) + 1e-7)
+            elif method == 'adam':
+                mu1 = 0.9
+                mu2 = 0.995
+
+                v0 = mu1 * v0 + (1 - mu1) * grads['W1']
+                v0p = mu2 * v0p + (1 - mu2) * grads['W1']**2
+                v0b = v0 / (1 - mu1**it)
+                v0pb = v0p / (1 - mu2**it)
+
+                v1 = mu1 * v1 + (1 - mu1) * grads['W2']
+                v1p = mu2 * v1p + (1 - mu2) * grads['W2']**2
+                v1b = v1 / (1 - mu1**it)
+                v1pb = v1p / (1 - mu2**it)
+
+                v2 = mu1 * v2 + (1 - mu1) * grads['b1']
+                v2p = mu2 * v2p + (1 - mu2) * grads['b1']**2
+                v2b = v2 / (1 - mu1**it)
+                v2pb = v2p / (1 - mu2**it)
+
+                v3 = mu1 * v3 + (1 - mu1) * grads['b2']
+                v3p = mu2 * v3p + (1 - mu2) * grads['b2']**2
+                v3b = v3 / (1 - mu1**it)
+                v3pb = v3p / (1 - mu2**it)
+
+                self.params['W1'] += -learning_rate * \
+                    v0b / (np.sqrt(v0pb) + 1e-7)
+                self.params['W2'] += -learning_rate * \
+                    v1b / (np.sqrt(v1pb) + 1e-7)
+                self.params['b1'] += -learning_rate * \
+                    v2b / (np.sqrt(v2pb) + 1e-7)
+                self.params['b2'] += -learning_rate * \
+                    v3b / (np.sqrt(v3pb) + 1e-7)
             ###################################################################
             #                             END OF YOUR CODE                          #
             ###################################################################
@@ -234,9 +342,9 @@ class TwoLayerNet(object):
         #######################################################################
         # TODO: Implement this function; it should be VERY simple!                #
         #######################################################################
-        layer1 = np.dot(X,self.params['W1'])+self.params['b1']
+        layer1 = np.dot(X, self.params['W1']) + self.params['b1']
         layer2 = relu(layer1)
-        layer3 = np.dot(layer2,self.params['W2'])+self.params['b2']
+        layer3 = np.dot(layer2, self.params['W2']) + self.params['b2']
         y_pred = np.argmax(layer3, axis=1)
         #######################################################################
         #                              END OF YOUR CODE                           #
@@ -262,3 +370,16 @@ def init_toy_data():
     X = 10 * np.random.randn(num_inputs, input_size)
     y = np.array([0, 1, 2, 2, 1])
     return X, y
+
+
+def show_net_weights(net):
+    W1 = net.params['W1']
+    W1 = W1.reshape(32, 32, 3, -1).transpose(3, 0, 1, 2)
+    plt.imshow(visualize_grid(W1, padding=3).astype('uint8'))
+    plt.gca().axis('off')
+    plt.show()
+
+
+def rel_error(x, y):
+    """ returns relative error """
+    return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
