@@ -3,10 +3,6 @@ import matplotlib.pyplot as plt
 from past.builtins import xrange
 from cs231n.vis_utils import visualize_grid
 
-
-def relu(x): return x * (x > 0)
-
-
 class TwoLayerNet(object):
     """
     A two-layer fully-connected neural network. The net has an input dimension of
@@ -80,8 +76,12 @@ class TwoLayerNet(object):
         # Store the result in the scores variable, which should be an array of      #
         # shape (N, C).                                                             #
         #######################################################################
+        p=1
+
         layer1 = X.dot(W1) + b1
-        layer2 = relu(layer1)  # relu
+        layer2 = np.maximum(0,layer1)
+        #mask = (np.random.rand(*layer2.shape)<p)/p
+        #layer2 *= mask
         layer3 = layer2.dot(W2) + b2
         scores = layer3
         #######################################################################
@@ -343,7 +343,7 @@ class TwoLayerNet(object):
         # TODO: Implement this function; it should be VERY simple!                #
         #######################################################################
         layer1 = np.dot(X, self.params['W1']) + self.params['b1']
-        layer2 = relu(layer1)
+        layer2 = np.maximum(0,layer1)
         layer3 = np.dot(layer2, self.params['W2']) + self.params['b2']
         y_pred = np.argmax(layer3, axis=1)
         #######################################################################

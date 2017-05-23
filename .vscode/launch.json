@@ -7,7 +7,7 @@
             "request": "launch",
             "stopOnEntry": true,
             "pythonPath": "${config:python.pythonPath}",
-            "program": "${file}",
+            "program": "D:/School projects/Programming/Python/Machine Learning/MachineLearning/machine_learning.py",
             "cwd": "${workspaceRoot}",
             "env": {},
             "envFile": "${workspaceRoot}/.env",
